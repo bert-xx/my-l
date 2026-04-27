@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    // 1. КОНФИГУРАЦИЯ ФИЛЬТРА
+    // 1. КОНФИГУРАЦИЯ СТРАН (ДЛЯ ФИЛЬТРА)
     var filterConfig = [
         { title: 'Японию (Аниме)', key: 'filter_japan', codes: ['JP'], langs: ['ja'] },
         { title: 'Россию',         key: 'filter_russia', codes: ['RU', 'SU'], langs: ['ru'] },
@@ -11,17 +11,20 @@
         { title: 'Китай',          key: 'filter_china',  codes: ['CN'], langs: ['zh'] }
     ];
 
+    // 2. СПИСКИ ЖАНРОВ
     var movieGenres = [
         { title: 'Боевики', id: 28 }, { title: 'Комедии', id: 35 }, { title: 'Ужасы', id: 27 },
-        { title: 'Триллеры', id: 53 }, { title: 'Фантастика', id: 878 }, { title: 'Криминал', id: 80 }
+        { title: 'Триллеры', id: 53 }, { title: 'Фантастика', id: 878 }, { title: 'Криминал', id: 80 },
+        { title: 'Мелодрамы', id: 10749 }, { title: 'Фэнтези', id: 14 }, { title: 'Приключения', id: 12 }
     ];
 
     var tvGenres = [
         { title: 'Боевики/Приключения', id: 10759 }, { title: 'Комедии', id: 35 },
-        { title: 'Драмы', id: 18 }, { title: 'Мультсериалы', id: 16 }
+        { title: 'Драмы', id: 18 }, { title: 'Криминал', id: 80 }, { title: 'Детективы', id: 9648 },
+        { title: 'Фантастика/Фэнтези', id: 10765 }, { title: 'Мультсериалы', id: 16 }
     ];
 
-    // 2. ФУНКЦИЯ ФИЛЬТРАЦИИ (Без использования ES6 функций)
+    // 3. ФУНКЦИЯ УДАЛЕНИЯ КАРТОЧЕК (ФИЛЬТР СТРАН)
     function applyFilter() {
         var cards = $('.card');
         if (!cards.length) return;
@@ -37,8 +40,7 @@
 
             for (var i = 0; i < filterConfig.length; i++) {
                 var conf = filterConfig[i];
-                // Если в настройках выключено (false)
-                if (Lampa.Storage.get(conf.key) === 'false' || Lampa.Storage.field(conf.key) === false) {
+                if (Lampa.Storage.field(conf.key) === false) {
                     // Проверка страны
                     for (var j = 0; j < countries.length; j++) {
                         if (conf.codes.indexOf(countries[j]) !== -1) { hide = true; break; }
@@ -48,40 +50,52 @@
                 }
                 if (hide) break;
             }
-
             if (hide) card.remove();
         });
     }
 
-    // 3. ПОКАЗ ВЫБОРА ЖАНРОВ
+    // 4. ГЕНЕРАЦИЯ ПЕРЕХОДА В КАТЕГОРИЮ
     function showGenres(title, genres, type) {
-        var items = genres.map(function(g) { return { title: g.title, id: g.id }; });
+        // Определяем текущий источник (TMDB или CUB)
+        var currentSource = Lampa.Storage.field('source') || 'tmdb';
+
+        var items = genres.map(function(g) { 
+            return { 
+                title: g.title, 
+                id: g.id 
+            }; 
+        });
+
         Lampa.Select.show({
             title: title,
             items: items,
             onSelect: function (a) {
+                // Переходим в категорию с правильными параметрами фильтрации
                 Lampa.Activity.push({
-                    url: type,
-                    title: a.title,
+                    url: type,      // movie или tv
+                    title: a.title, // Название жанра
                     component: 'category',
-                    id: a.id,
-                    source: 'tmdb'
+                    id: a.id,       // ID Жанра для фильтрации
+                    source: currentSource,
+                    page: 1
                 });
             },
-            onBack: function () { Lampa.Controller.toggle('menu'); }
+            onBack: function () {
+                Lampa.Controller.toggle('menu');
+            }
         });
     }
 
-    // 4. ДОБАВЛЕНИЕ В МЕНЮ (С проверкой отрисовки)
+    // 5. ВСТАВКА В БОКОВОЕ МЕНЮ
     function injectMenu() {
         if ($('.menu__list').length > 0) {
             if ($('.menu__item[data-action="movie_genres"]').length > 0) return;
 
-            var mMovie = $('<li class="menu__item selector" data-action="movie_genres"><div class="menu__ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line></svg></div><div class="menu__text">Кино: Жанры</div></li>');
+            var mMovie = $('<li class="menu__item selector" data-action="movie_genres"><div class="menu__ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div><div class="menu__text">Кино: Жанры</div></li>');
             var mTV = $('<li class="menu__item selector" data-action="tv_genres"><div class="menu__ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div><div class="menu__text">Сериалы: Жанры</div></li>');
 
-            mMovie.on('hover:enter', function() { showGenres('Фильмы по жанрам', movieGenres, 'movie'); });
-            mTV.on('hover:enter', function() { showGenres('Сериалы по жанрам', tvGenres, 'tv'); });
+            mMovie.on('hover:enter', function() { showGenres('Фильмы: ' + (Lampa.Storage.field('source') || 'TMDB').toUpperCase(), movieGenres, 'movie'); });
+            mTV.on('hover:enter', function() { showGenres('Сериалы: ' + (Lampa.Storage.field('source') || 'TMDB').toUpperCase(), tvGenres, 'tv'); });
 
             $('.menu .menu__list').eq(0).append(mMovie);
             $('.menu .menu__list').eq(0).append(mTV);
@@ -90,7 +104,7 @@
         }
     }
 
-    // 5. НАСТРОЙКИ
+    // 6. НАСТРОЙКИ ФИЛЬТРА
     function initSettings() {
         Lampa.SettingsApi.addComponent({
             component: 'filter_content',
@@ -110,6 +124,7 @@
     function startPlugin() {
         initSettings();
         injectMenu();
+        // Фильтрация запускается сразу и работает везде (в поиске, в жанрах, на главной)
         setInterval(applyFilter, 1500);
     }
 
