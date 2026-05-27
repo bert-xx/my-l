@@ -27,4 +27,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/bert-xx/lampa_hf:latest
+          tags: ghcr.io/bert-xx/my-lampac:latest
