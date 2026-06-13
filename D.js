@@ -26,8 +26,8 @@
     }
 
     function isEroticContent(data) {
-        var genres  = getGenreIds(data);
-        var isAdult = data.adult == true;
+        var genres    = getGenreIds(data);
+        var isAdult   = data.adult == true;
         var hasErotic = genres.indexOf(10749) !== -1;
         var hasDrama  = genres.indexOf(18) !== -1;
 
@@ -48,8 +48,9 @@
     function isKoreaAdult(data) {
         if (Lampa.Storage.field('filter_korea_adult') === false) {
             var countries = data.origin_country || [];
+            var lang      = data.original_language || '';
             var genres    = getGenreIds(data);
-            var isKorea   = countries.indexOf('KR') !== -1;
+            var isKorea   = countries.indexOf('KR') !== -1 || lang === 'ko';
             var hasDramaOrRomance = genres.indexOf(18) !== -1 || genres.indexOf(10749) !== -1;
             if (isKorea && hasDramaOrRomance) return true;
         }
