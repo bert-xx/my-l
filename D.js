@@ -1,12 +1,6 @@
 (function () {
     'use strict';
 
-    // =============================================================
-    // СПИСОК СТРАН ДЛЯ ФИЛЬТРАЦИИ
-    // Чтобы добавить страну: добавь строчку { title: 'Имя', key: 'ключ', codes: ['КОД'], langs: ['яз'] }
-    // Коды стран (ISO 3166-1 alpha-2): RU, JP, IN, ID, PL, CN и т.д.
-    // пример { title: 'Францию', key: 'filter_france', codes: ['FR'], langs: ['fr'] },
-    // =============================================================
     var filterConfig = [
         { title: 'Японию (Аниме)', key: 'filter_japan',       codes: ['JP'],       langs: ['ja'] },
         { title: 'Россию',         key: 'filter_russia',       codes: ['RU', 'SU'], langs: ['ru'] },
@@ -18,13 +12,7 @@
         { title: 'Польшу',         key: 'filter_poland',       codes: ['PL'],       langs: ['pl'] },
         { title: 'Китай',          key: 'filter_china',        codes: ['CN'],       langs: ['zh'] }
     ];
-    // =============================================================
 
-    // =============================================================
-    // ФИЛЬТР ЭРОТИКИ (TMDB)
-    // Убираем только если adult:true И есть жанр Romance(10749) или Drama(18)
-    // Только Драма без adult — не трогаем
-    // =============================================================
     function isEroticContent(data) {
         var genres = data.genre_ids || (data.genres ? data.genres.map(function (g) { return g.id; }) : []);
         var isAdult = data.adult == true;
@@ -33,7 +21,6 @@
 
         if (isAdult && (hasErotic || hasDrama)) return true;
 
-        // keywords fallback (если есть в объекте карточки)
         var keywords = data.keywords || [];
         var badWords = ['erotic', 'softcore', 'sex film', 'pornographic'];
         for (var i = 0; i < keywords.length; i++) {
@@ -43,6 +30,20 @@
             }
         }
 
+        return false;
+    }
+
+    // =============================================================
+    // ФИЛЬТР КОРЕИ: страна KR + жанр Драма(18) или Мелодрама(10749) = убираем
+    // =============================================================
+    function isKoreaAdult(data) {
+        if (Lampa.Storage.field('filter_korea_adult') === false) {
+            var countries = data.origin_country || [];
+            var genres = data.genre_ids || (data.genres ? data.genres.map(function (g) { return g.id; }) : []);
+            var isKorea = countries.indexOf('KR') !== -1;
+            var hasDramaOrRomance = genres.indexOf(18) !== -1 || genres.indexOf(10749) !== -1;
+            if (isKorea && hasDramaOrRomance) return true;
+        }
         return false;
     }
     // =============================================================
@@ -59,7 +60,6 @@
             var lang = data.original_language || '';
             var hide = false;
 
-            // Фильтр по странам
             for (var i = 0; i < filterConfig.length; i++) {
                 var item = filterConfig[i];
 
@@ -74,10 +74,11 @@
                 }
             }
 
-            // Фильтр эротики (если включён в настройках)
             if (!hide && Lampa.Storage.field('filter_erotic') === false) {
                 if (isEroticContent(data)) hide = true;
             }
+
+            if (!hide && isKoreaAdult(data)) hide = true;
 
             if (hide) card.remove();
         });
@@ -90,7 +91,6 @@
             icon: '<svg height="36" viewBox="0 0 24 24" width="36" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>'
         });
 
-        // Пункты по странам
         filterConfig.forEach(function (item) {
             Lampa.SettingsApi.addParam({
                 component: 'filter_content',
@@ -102,13 +102,21 @@
             });
         });
 
-        // Пункт фильтра эротики
         Lampa.SettingsApi.addParam({
             component: 'filter_content',
             param: { name: 'filter_erotic', type: 'trigger', default: true },
             field: {
-                name: 'Показывать эротику',
+                name: 'жанр Драма/Романтика',
                 description: 'Скрывать фильмы с меткой adult + жанр Драма/Романтика'
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'filter_content',
+            param: { name: 'filter_korea_adult', type: 'trigger', default: true },
+            field: {
+                name: 'Показывать Южную Корею (Драма/Мелодрама)',
+                description: 'Скрывать корейский контент с жанром Драма или Мелодрама'
             }
         });
     }
