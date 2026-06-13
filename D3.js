@@ -2,19 +2,16 @@
     'use strict';
 
     var filterConfig = [
-        { title: 'Японию (Аниме)', key: 'filter_japan', codes: ['JP'], langs: ['ja'] },
-        { title: 'Россию', key: 'filter_russia', codes: ['RU', 'SU'], langs: ['ru'] },
-        { title: 'Индию', key: 'filter_india', codes: ['IN'], langs: ['hi', 'kn', 'ml', 'ta', 'te'] },
-        { title: 'Индонезию', key: 'filter_indonesia', codes: ['ID'], langs: ['id'] },
-        { title: 'Филиппины', key: 'filter_philippines', codes: ['PH'], langs: ['tl', 'fil'] },
-        { title: 'Болгарию', key: 'filter_bulgaria', codes: ['BG'], langs: ['bg'] },
-        { title: 'Испанию', key: 'filter_spain', codes: ['ES'], langs: ['es'] },
-        { title: 'Польшу', key: 'filter_poland', codes: ['PL'], langs: ['pl'] },
-        { title: 'Китай', key: 'filter_china', codes: ['CN'], langs: ['zh'] }
+        { title: 'Японию (Аниме)', key: 'filter_japan',       codes: ['JP'],       langs: ['ja'] },
+        { title: 'Россию',         key: 'filter_russia',       codes: ['RU', 'SU'], langs: ['ru'] },
+        { title: 'Индию',          key: 'filter_india',        codes: ['IN'],       langs: ['hi', 'kn', 'ml', 'ta', 'te'] },
+        { title: 'Индонезию',      key: 'filter_indonesia',    codes: ['ID'],       langs: ['id'] },
+        { title: 'Филиппины',      key: 'filter_philippines',  codes: ['PH'],       langs: ['tl', 'fil'] },
+        { title: 'Болгарию',       key: 'filter_bulgaria',     codes: ['BG'],       langs: ['bg'] },
+        { title: 'Испанию',        key: 'filter_spain',        codes: ['ES'],       langs: ['es'] },
+        { title: 'Польшу',         key: 'filter_poland',       codes: ['PL'],       langs: ['pl'] },
+        { title: 'Китай',          key: 'filter_china',        codes: ['CN'],       langs: ['zh'] }
     ];
-
-    // Список стран где много эротики в жанре Драма/Мелодрама
-    var eroticCountryCodes = ['KR', 'DE', 'FR', 'IT', 'JP', 'ES', 'TH'];
 
     function getGenreIds(data) {
         if (data.genre_ids) return data.genre_ids;
@@ -25,53 +22,37 @@
     function getKeywords(data) {
         if (Array.isArray(data.keywords)) return data.keywords;
         if (data.keywords && Array.isArray(data.keywords.keywords)) return data.keywords.keywords;
-        if (data.keywords && Array.isArray(data.keywords.results)) return data.keywords.results;
         return [];
     }
 
     function isEroticContent(data) {
-        var genres = getGenreIds(data);
-        var isAdult = data.adult == true;
-        var hasErotic = genres.indexOf(10749)!== -1; // Мелодрама
-        var hasDrama = genres.indexOf(18)!== -1; // Драма
+        var genres    = getGenreIds(data);
+        var isAdult   = data.adult == true;
+        var hasErotic = genres.indexOf(10749) !== -1;
+        var hasDrama  = genres.indexOf(18) !== -1;
 
         if (isAdult && (hasErotic || hasDrama)) return true;
 
         var keywords = getKeywords(data);
-        var badWords = ['erotic', 'softcore', 'sex film', 'pornographic', 'hentai', 'ecchi', 'nudity'];
+        var badWords = ['erotic', 'softcore', 'sex film', 'pornographic'];
         for (var i = 0; i < keywords.length; i++) {
             var kw = (keywords[i].name || keywords[i]).toLowerCase();
             for (var j = 0; j < badWords.length; j++) {
-                if (kw.indexOf(badWords[j])!== -1) return true;
+                if (kw.indexOf(badWords[j]) !== -1) return true;
             }
         }
 
         return false;
     }
 
-    // Старый фильтр только для Кореи
     function isKoreaAdult(data) {
         if (Lampa.Storage.field('filter_korea_adult') === false) {
             var countries = data.origin_country || [];
-            var lang = data.original_language || '';
-            var genres = getGenreIds(data);
-            var isKorea = countries.indexOf('KR')!== -1 || lang === 'ko';
-            var hasDramaOrRomance = genres.indexOf(18)!== -1 || genres.indexOf(10749)!== -1;
+            var lang      = data.original_language || '';
+            var genres    = getGenreIds(data);
+            var isKorea   = countries.indexOf('KR') !== -1 || lang === 'ko';
+            var hasDramaOrRomance = genres.indexOf(18) !== -1 || genres.indexOf(10749) !== -1;
             if (isKorea && hasDramaOrRomance) return true;
-        }
-        return false;
-    }
-
-    // Новый универсальный фильтр для стран с эротикой
-    function isEroticCountries(data) {
-        if (Lampa.Storage.field('filter_erotic_countries') === false) {
-            var countries = data.origin_country || [];
-            var genres = getGenreIds(data);
-            var hasDramaOrRomance = genres.indexOf(18)!== -1 || genres.indexOf(10749)!== -1;
-            var isEroticCountry = countries.some(function(c) { return eroticCountryCodes.indexOf(c)!== -1; });
-
-            // Корея + Драма/Мелодрама = бан. И остальные страны из списка.
-            if (isEroticCountry && hasDramaOrRomance) return true;
         }
         return false;
     }
@@ -85,16 +66,15 @@
             if (!data) return;
 
             var countries = data.origin_country || [];
-            var lang = data.original_language || '';
-            var hide = false;
+            var lang      = data.original_language || '';
+            var hide      = false;
 
-            // 1. Фильтр по странам из основного конфига
             for (var i = 0; i < filterConfig.length; i++) {
                 var item = filterConfig[i];
 
                 if (Lampa.Storage.field(item.key) === false) {
-                    var matchCountry = countries.some(function(c) { return item.codes.indexOf(c)!== -1; });
-                    var matchLang = item.langs.indexOf(lang)!== -1;
+                    var matchCountry = countries.some(function(c) { return item.codes.indexOf(c) !== -1; });
+                    var matchLang    = item.langs.indexOf(lang) !== -1;
 
                     if (matchCountry || matchLang) {
                         hide = true;
@@ -103,16 +83,11 @@
                 }
             }
 
-            // 2. Фильтр adult + драма/мелодрама
             if (!hide && Lampa.Storage.field('filter_erotic') === false) {
                 if (isEroticContent(data)) hide = true;
             }
 
-            // 3. Старый фильтр Корея + драма/мелодрама
             if (!hide && isKoreaAdult(data)) hide = true;
-
-            // 4. Новый фильтр: Германия, Франция, Италия и т.д. + драма/мелодрама
-            if (!hide && isEroticCountries(data)) hide = true;
 
             if (hide) card.remove();
         });
@@ -150,16 +125,7 @@
             param: { name: 'filter_korea_adult', type: 'trigger', default: true },
             field: {
                 name: 'Южная Корея + Драма / + Мелодрама',
-                description: 'Скрывать: Южная Корея + Драма, Южная Корея + Мелодрама'
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'filter_content',
-            param: { name: 'filter_erotic_countries', type: 'trigger', default: true },
-            field: {
-                name: 'Эротика DE, FR, IT, JP, ES, TH',
-                description: 'Скрывать: Германия, Франция, Италия, Япония, Испания, Таиланд + Драма/Мелодрама'
+                description: 'Скрывать: Южная Корея + Драма, Южная Корея + Мелодрама, Южная Корея + Драма/Мелодрама'
             }
         });
     }
