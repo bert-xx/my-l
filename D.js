@@ -27,7 +27,7 @@
     // =============================================================
     function isEroticContent(data) {
         var genres = data.genre_ids || (data.genres ? data.genres.map(function (g) { return g.id; }) : []);
-        var isAdult = data.adult === true;
+        var isAdult = data.adult == true;
         var hasErotic = genres.indexOf(10749) !== -1;
         var hasDrama  = genres.indexOf(18) !== -1;
 
