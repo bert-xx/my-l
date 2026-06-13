@@ -123,12 +123,15 @@
     function start() {
         initSettings();
 
-        // Фильтрация на уровне данных, до создания карточек — без "скачков" при скролле
+        // Скрываем карточку сразу при создании, до того как она попадёт в видимую область
         Lampa.Listener.follow('line', function(e) {
-            if (e.type === 'create' && e.data && Array.isArray(e.data.results)) {
-                e.data.results = e.data.results.filter(function(data) {
-                    return !shouldHide(data);
-                });
+            if (e.type === 'append' && e.items && e.items.length) {
+                var item    = e.items[e.items.length - 1];
+                var element = item && item.data;
+
+                if (element && shouldHide(element)) {
+                    item.render(true).css('display', 'none');
+                }
             }
         });
 
