@@ -57,40 +57,57 @@
         return false;
     }
 
-    function applyFilter() {
-        if (!$('.card').length) return;
+    // Единая функция проверки — используется API-патчем
+    function shouldHide(data) {
+        if (!data) return false;
 
-        $('.card').each(function () {
-            var card = $(this);
-            var data = card[0].card_data;
-            if (!data) return;
+        var countries = data.origin_country || [];
+        var lang      = data.original_language || '';
 
-            var countries = data.origin_country || [];
-            var lang      = data.original_language || '';
-            var hide      = false;
+        for (var i = 0; i < filterConfig.length; i++) {
+            var item = filterConfig[i];
 
-            for (var i = 0; i < filterConfig.length; i++) {
-                var item = filterConfig[i];
+            if (Lampa.Storage.field(item.key) === false) {
+                var matchCountry = countries.some(function(c) { return item.codes.indexOf(c) !== -1; });
+                var matchLang    = item.langs.indexOf(lang) !== -1;
 
-                if (Lampa.Storage.field(item.key) === false) {
-                    var matchCountry = countries.some(function(c) { return item.codes.indexOf(c) !== -1; });
-                    var matchLang    = item.langs.indexOf(lang) !== -1;
-
-                    if (matchCountry || matchLang) {
-                        hide = true;
-                        break;
-                    }
-                }
+                if (matchCountry || matchLang) return true;
             }
+        }
 
-            if (!hide && Lampa.Storage.field('filter_erotic') === false) {
-                if (isEroticContent(data)) hide = true;
-            }
+        if (Lampa.Storage.field('filter_erotic') === false && isEroticContent(data)) return true;
 
-            if (!hide && isKoreaAdult(data)) hide = true;
+        if (isKoreaAdult(data)) return true;
 
-            if (hide) card.remove();
-        });
+        return false;
+    }
+
+    function filterResults(json) {
+        if (json && Array.isArray(json.results)) {
+            json.results = json.results.filter(function(item) {
+                return !shouldHide(item);
+            });
+        }
+        return json;
+    }
+
+    function patchApiSource(sourceObj) {
+        if (!sourceObj || typeof sourceObj.list !== 'function') return;
+
+        var originalList = sourceObj.list;
+
+        sourceObj.list = function(params, oncomplite, onerror) {
+            originalList.call(sourceObj, params, function(json) {
+                oncomplite(filterResults(json));
+            }, onerror);
+        };
+    }
+
+    function patchApi() {
+        if (Lampa.Api && Lampa.Api.sources) {
+            patchApiSource(Lampa.Api.sources.tmdb);
+            patchApiSource(Lampa.Api.sources.cub);
+        }
     }
 
     function initSettings() {
@@ -132,7 +149,7 @@
 
     function start() {
         initSettings();
-        setInterval(applyFilter, 1500);
+        patchApi();
 
         Lampa.Listener.follow('app', function(e) {
             if (e.type == 'ready') {
