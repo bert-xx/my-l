@@ -13,6 +13,8 @@
         { title: 'Китай',          key: 'filter_china',        codes: ['CN'],       langs: ['zh'] }
     ];
 
+    var dramaAdultCountries = ['KR', 'IT', 'FR', 'DE', 'HU', 'CZ', 'BR'];
+
     function getGenreIds(data) {
         if (data.genre_ids) return data.genre_ids;
         if (data.genres) return data.genres.map(function(g) { return g.id; });
@@ -45,14 +47,13 @@
         return false;
     }
 
-    function isKoreaAdult(data) {
-        if (Lampa.Storage.field('filter_korea_adult') === false) {
+    function isDramaCountryAdult(data) {
+        if (Lampa.Storage.field('filter_drama_countries') === false) {
             var countries = data.origin_country || [];
-            var lang      = data.original_language || '';
             var genres    = getGenreIds(data);
-            var isKorea   = countries.indexOf('KR') !== -1 || lang === 'ko';
+            var isTarget  = countries.some(function(c) { return dramaAdultCountries.indexOf(c) !== -1; });
             var hasDramaOrRomance = genres.indexOf(18) !== -1 || genres.indexOf(10749) !== -1;
-            if (isKorea && hasDramaOrRomance) return true;
+            if (isTarget && hasDramaOrRomance) return true;
         }
         return false;
     }
@@ -77,7 +78,7 @@
 
         if (Lampa.Storage.field('filter_erotic') === false && isEroticContent(data)) return true;
 
-        if (isKoreaAdult(data)) return true;
+        if (isDramaCountryAdult(data)) return true;
 
         return false;
     }
@@ -139,10 +140,10 @@
 
         Lampa.SettingsApi.addParam({
             component: 'filter_content',
-            param: { name: 'filter_korea_adult', type: 'trigger', default: true },
+            param: { name: 'filter_drama_countries', type: 'trigger', default: true },
             field: {
-                name: 'Южная Корея + Драма / + Мелодрама',
-                description: 'Скрывать: Южная Корея + Драма, Южная Корея + Мелодрама, Южная Корея + Драма/Мелодрама'
+                name: 'Драма/Мелодрама по странам',
+                description: 'Скрывать Драму и Мелодраму из Кореи, Италии, Франции, Германии, Венгрии, Чехии, Бразилии'
             }
         });
     }
