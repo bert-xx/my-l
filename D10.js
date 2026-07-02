@@ -106,10 +106,62 @@
         };
     }
 
+    // Доп. патчи только для TMDB: main/category вызывают oncomplite много раз
+    // (по одной строке за раз), search отдаёт массив блоков, full — вложенные
+    // recomend/simular. CUB эти методы не патчатся вообще.
+    function patchTmdbExtra(sourceObj) {
+        if (!sourceObj) return;
+
+        if (typeof sourceObj.main === 'function') {
+            var originalMain = sourceObj.main;
+            sourceObj.main = function(params, oncomplite, onerror) {
+                return originalMain.call(sourceObj, params, function(json) {
+                    oncomplite(json ? filterResults(json) : json);
+                }, onerror);
+            };
+        }
+
+        if (typeof sourceObj.category === 'function') {
+            var originalCategory = sourceObj.category;
+            sourceObj.category = function(params, oncomplite, onerror) {
+                return originalCategory.call(sourceObj, params, function(json) {
+                    oncomplite(json ? filterResults(json) : json);
+                }, onerror);
+            };
+        }
+
+        if (typeof sourceObj.search === 'function') {
+            var originalSearch = sourceObj.search;
+            sourceObj.search = function(params, oncomplite) {
+                return originalSearch.call(sourceObj, params, function(items) {
+                    if (Array.isArray(items)) {
+                        items.forEach(function(block) { filterResults(block); });
+                    }
+                    oncomplite(items);
+                });
+            };
+        }
+
+        if (typeof sourceObj.full === 'function') {
+            var originalFull = sourceObj.full;
+            sourceObj.full = function(params, oncomplite, onerror) {
+                return originalFull.call(sourceObj, params, function(result) {
+                    if (result) {
+                        if (result.recomend) filterResults(result.recomend);
+                        if (result.simular) filterResults(result.simular);
+                    }
+                    oncomplite(result);
+                }, onerror);
+            };
+        }
+    }
+
     function patchApi() {
         if (Lampa.Api && Lampa.Api.sources) {
             patchApiSource(Lampa.Api.sources.tmdb);
             patchApiSource(Lampa.Api.sources.cub);
+
+            patchTmdbExtra(Lampa.Api.sources.tmdb);
         }
     }
 
