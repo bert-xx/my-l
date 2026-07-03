@@ -107,9 +107,8 @@
         };
     }
 
-    // tmdb: единая точка патча — .get (get$c), через неё проходят все запросы
-    // (main, category, search, full, discover, genres и т.д.), поэтому
-    // отдельные патчи main/category/search/full/list больше не нужны.
+    // tmdb: основная точка патча — .get (get$c), через неё проходят
+    // main, category, discover-подборки и т.д.
     function patchTmdbGet(sourceObj) {
         if (!sourceObj || typeof sourceObj.get !== 'function') return;
 
@@ -122,10 +121,31 @@
         };
     }
 
+    // tmdb: .full() не использует get$c, возвращает {movie, recomend, simular, ...}
+    // отдельным сетевым вызовом — патчим отдельно. Саму открытую карточку
+    // (result.movie) не трогаем, фильтруем только списки recomend/simular.
+    // .search не патчим — без фильтрации по решению ТЗ.
+    function patchTmdbFull(sourceObj) {
+        if (!sourceObj || typeof sourceObj.full !== 'function') return;
+
+        var originalFull = sourceObj.full;
+
+        sourceObj.full = function(params, oncomplite, onerror) {
+            return originalFull.call(sourceObj, params, function(result) {
+                if (result) {
+                    if (result.recomend) filterResults(result.recomend);
+                    if (result.simular) filterResults(result.simular);
+                }
+                oncomplite(result);
+            }, onerror);
+        };
+    }
+
     function patchApi() {
         if (Lampa.Api && Lampa.Api.sources) {
             patchCubSource(Lampa.Api.sources.cub);
             patchTmdbGet(Lampa.Api.sources.tmdb);
+            patchTmdbFull(Lampa.Api.sources.tmdb);
         }
     }
 
