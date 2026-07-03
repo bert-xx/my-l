@@ -87,25 +87,17 @@
 
     function filterResults(json) {
         if (json && Array.isArray(json.results)) {
-            var before = json.results.length;
             json.results = json.results.filter(function(item) {
                 return !shouldHide(item);
             });
-            var after = json.results.length;
-            if (before !== after) {
-                console.log('[filter] filtered', before - after, 'items, title:', json.title);
-            }
         }
         return json;
     }
 
-    function patchApiSource(sourceObj, label) {
-        if (!sourceObj || typeof sourceObj.list !== 'function') {
-            console.log('[filter] patchApiSource SKIPPED for', label, '- sourceObj or .list missing', sourceObj);
-            return;
-        }
+    // cub: патч .list, логика не меняется
+    function patchCubSource(sourceObj) {
+        if (!sourceObj || typeof sourceObj.list !== 'function') return;
 
-        console.log('[filter] patchApiSource patching .list for', label);
         var originalList = sourceObj.list;
 
         sourceObj.list = function(params, oncomplite, onerror) {
@@ -115,96 +107,25 @@
         };
     }
 
-    // Доп. патчи только для TMDB: main/category вызывают oncomplite много раз
-    // (по одной строке за раз), search отдаёт массив блоков, full — вложенные
-    // recomend/simular. CUB эти методы не патчатся вообще.
-    function patchTmdbExtra(sourceObj) {
-        console.log('[filter] patchTmdbExtra called. sourceObj === Lampa.Api.sources.tmdb ?', sourceObj === Lampa.Api.sources.tmdb, sourceObj);
+    // tmdb: единая точка патча — .get (get$c), через неё проходят все запросы
+    // (main, category, search, full, discover, genres и т.д.), поэтому
+    // отдельные патчи main/category/search/full/list больше не нужны.
+    function patchTmdbGet(sourceObj) {
+        if (!sourceObj || typeof sourceObj.get !== 'function') return;
 
-        if (!sourceObj) {
-            console.log('[filter] patchTmdbExtra ABORT - sourceObj is falsy');
-            return;
-        }
+        var originalGet = sourceObj.get;
 
-        if (typeof sourceObj.main === 'function') {
-            console.log('[filter] patching .main, original name:', sourceObj.main.name);
-            var originalMain = sourceObj.main;
-            sourceObj.main = function(params, oncomplite, onerror) {
-                console.log('[filter] patched .main INVOKED');
-                return originalMain.call(sourceObj, params, function(json) {
-                    oncomplite(json ? filterResults(json) : json);
-                }, onerror);
-            };
-        } else {
-            console.log('[filter] .main is NOT a function, typeof:', typeof sourceObj.main);
-        }
-
-        if (typeof sourceObj.category === 'function') {
-            console.log('[filter] patching .category, original name:', sourceObj.category.name);
-            var originalCategory = sourceObj.category;
-            sourceObj.category = function(params, oncomplite, onerror) {
-                console.log('[filter] patched .category INVOKED');
-                return originalCategory.call(sourceObj, params, function(json) {
-                    oncomplite(json ? filterResults(json) : json);
-                }, onerror);
-            };
-        } else {
-            console.log('[filter] .category is NOT a function, typeof:', typeof sourceObj.category);
-        }
-
-        if (typeof sourceObj.search === 'function') {
-            console.log('[filter] patching .search, original name:', sourceObj.search.name);
-            var originalSearch = sourceObj.search;
-            sourceObj.search = function(params, oncomplite) {
-                console.log('[filter] patched .search INVOKED');
-                return originalSearch.call(sourceObj, params, function(items) {
-                    if (Array.isArray(items)) {
-                        items.forEach(function(block) { filterResults(block); });
-                    }
-                    oncomplite(items);
-                });
-            };
-        } else {
-            console.log('[filter] .search is NOT a function, typeof:', typeof sourceObj.search);
-        }
-
-        if (typeof sourceObj.full === 'function') {
-            console.log('[filter] patching .full, original name:', sourceObj.full.name);
-            var originalFull = sourceObj.full;
-            sourceObj.full = function(params, oncomplite, onerror) {
-                console.log('[filter] patched .full INVOKED');
-                return originalFull.call(sourceObj, params, function(result) {
-                    if (result) {
-                        if (result.recomend) filterResults(result.recomend);
-                        if (result.simular) filterResults(result.simular);
-                    }
-                    oncomplite(result);
-                }, onerror);
-            };
-        } else {
-            console.log('[filter] .full is NOT a function, typeof:', typeof sourceObj.full);
-        }
-
-        console.log('[filter] patchTmdbExtra DONE. after patch, sourceObj.main.name =', sourceObj.main && sourceObj.main.name);
+        sourceObj.get = function(method, params, oncomplite, onerror, cache) {
+            return originalGet.call(sourceObj, method, params, function(json) {
+                oncomplite(filterResults(json));
+            }, onerror, cache);
+        };
     }
 
     function patchApi() {
-        console.log('[filter] patchApi() called. Lampa.Api exists?', !!Lampa.Api, 'sources exists?', !!(Lampa.Api && Lampa.Api.sources));
-
         if (Lampa.Api && Lampa.Api.sources) {
-            console.log('[filter] Lampa.Api.sources.tmdb at patch time:', Lampa.Api.sources.tmdb);
-            console.log('[filter] Lampa.Api.sources.cub at patch time:', Lampa.Api.sources.cub);
-
-            patchApiSource(Lampa.Api.sources.tmdb, 'tmdb');
-            patchApiSource(Lampa.Api.sources.cub, 'cub');
-
-            patchTmdbExtra(Lampa.Api.sources.tmdb);
-
-            // Контрольная проверка сразу после патча
-            console.log('[filter] VERIFY right after patchApi(): main.toString() includes filterResults?',
-                Lampa.Api.sources.tmdb.main.toString().indexOf('filterResults') !== -1);
-        } else {
-            console.log('[filter] patchApi ABORT - Lampa.Api or Lampa.Api.sources missing');
+            patchCubSource(Lampa.Api.sources.cub);
+            patchTmdbGet(Lampa.Api.sources.tmdb);
         }
     }
 
@@ -246,7 +167,6 @@
     }
 
     function start() {
-        console.log('[filter] start() called');
         initSettings();
         patchApi();
 
@@ -257,16 +177,10 @@
         });
     }
 
-    if (window.appready) {
-        console.log('[filter] window.appready TRUE at load time - calling start() immediately');
-        start();
-    } else {
-        console.log('[filter] window.appready FALSE at load time - waiting for app ready event');
+    if (window.appready) start();
+    else {
         Lampa.Listener.follow('app', function(e) {
-            if (e.type == 'ready') {
-                console.log('[filter] app ready event fired - calling start()');
-                start();
-            }
+            if (e.type == 'ready') start();
         });
     }
 })();
