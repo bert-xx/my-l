@@ -15,6 +15,12 @@
 
     var dramaAdultCountries = ['KR', 'IT', 'FR', 'DE', 'HU', 'CZ', 'BR'];
 
+    // Имена источников, которые нужно патчить (и .list, и main/category/search/full)
+    var SOURCE_NAMES = ['tmdb', 'cub'];
+
+    // Флаг на самом объекте источника — чтобы не патчить дважды при повторных вызовах patchApi()
+    var PATCHED_FLAG = '__filterContentPatched';
+
     function getGenreIds(data) {
         if (data.genre_ids) return data.genre_ids;
         if (data.genres) return data.genres.map(function(g) { return g.id; });
@@ -58,7 +64,7 @@
         return false;
     }
 
-    // Единая функция проверки — используется API-патчем
+    // Единая функция проверки — используется всеми патчами
     function shouldHide(data) {
         if (!data) return false;
 
@@ -94,7 +100,8 @@
         return json;
     }
 
-    function patchApiSource(sourceObj) {
+    // .list — используется прямыми списковыми запросами (в т.ч. discover / persons и т.д.)
+    function patchList(sourceObj) {
         if (!sourceObj || typeof sourceObj.list !== 'function') return;
 
         var originalList = sourceObj.list;
@@ -106,10 +113,9 @@
         };
     }
 
-    // Доп. патчи только для TMDB: main/category вызывают oncomplite много раз
-    // (по одной строке за раз), search отдаёт массив блоков, full — вложенные
-    // recomend/simular. CUB эти методы не патчатся вообще.
-    function patchTmdbExtra(sourceObj) {
+    // main/category — главная страница и категории (могут вызывать oncomplite
+    // несколько раз, по одной строке за раз)
+    function patchMainCategory(sourceObj) {
         if (!sourceObj) return;
 
         if (typeof sourceObj.main === 'function') {
@@ -129,40 +135,84 @@
                 }, onerror);
             };
         }
-
-        if (typeof sourceObj.search === 'function') {
-            var originalSearch = sourceObj.search;
-            sourceObj.search = function(params, oncomplite) {
-                return originalSearch.call(sourceObj, params, function(items) {
-                    if (Array.isArray(items)) {
-                        items.forEach(function(block) { filterResults(block); });
-                    }
-                    oncomplite(items);
-                });
-            };
-        }
-
-        if (typeof sourceObj.full === 'function') {
-            var originalFull = sourceObj.full;
-            sourceObj.full = function(params, oncomplite, onerror) {
-                return originalFull.call(sourceObj, params, function(result) {
-                    if (result) {
-                        if (result.recomend) filterResults(result.recomend);
-                        if (result.simular) filterResults(result.simular);
-                    }
-                    oncomplite(result);
-                }, onerror);
-            };
-        }
     }
 
-    function patchApi() {
-        if (Lampa.Api && Lampa.Api.sources) {
-            patchApiSource(Lampa.Api.sources.tmdb);
-            patchApiSource(Lampa.Api.sources.cub);
+    // search — отдаёт массив блоков результатов
+    function patchSearch(sourceObj) {
+        if (!sourceObj || typeof sourceObj.search !== 'function') return;
 
-            patchTmdbExtra(Lampa.Api.sources.tmdb);
-        }
+        var originalSearch = sourceObj.search;
+        sourceObj.search = function(params, oncomplite) {
+            return originalSearch.call(sourceObj, params, function(items) {
+                if (Array.isArray(items)) {
+                    items.forEach(function(block) { filterResults(block); });
+                }
+                oncomplite(items);
+            });
+        };
+    }
+
+    // full — карточка фильма, содержит вложенные recomend/simular
+    function patchFull(sourceObj) {
+        if (!sourceObj || typeof sourceObj.full !== 'function') return;
+
+        var originalFull = sourceObj.full;
+        sourceObj.full = function(params, oncomplite, onerror) {
+            return originalFull.call(sourceObj, params, function(result) {
+                if (result) {
+                    if (result.recomend) filterResults(result.recomend);
+                    if (result.simular) filterResults(result.simular);
+                }
+                oncomplite(result);
+            }, onerror);
+        };
+    }
+
+    // Патчим один источник целиком (list + main + category + search + full)
+    function patchSource(sourceObj) {
+        if (!sourceObj || sourceObj[PATCHED_FLAG]) return;
+
+        patchList(sourceObj);
+        patchMainCategory(sourceObj);
+        patchSearch(sourceObj);
+        patchFull(sourceObj);
+
+        sourceObj[PATCHED_FLAG] = true;
+    }
+
+    // Пытаемся пропатчить все нужные источники прямо сейчас.
+    // Возвращает true, если ВСЕ источники из SOURCE_NAMES уже существуют и пропатчены.
+    function tryPatchApi() {
+        if (!Lampa.Api || !Lampa.Api.sources) return false;
+
+        var allReady = true;
+
+        SOURCE_NAMES.forEach(function(name) {
+            var src = Lampa.Api.sources[name];
+            if (src) {
+                patchSource(src);
+            } else {
+                allReady = false;
+            }
+        });
+
+        return allReady;
+    }
+
+    // Источники (особенно cub) могут создаваться лениво — не сразу при старте.
+    // Поэтому пробуем сразу, а если не всё готово — опрашиваем ещё некоторое время.
+    function patchApi() {
+        if (tryPatchApi()) return;
+
+        var attempts = 0;
+        var maxAttempts = 40; // ~20 секунд при интервале 500мс
+
+        var interval = setInterval(function() {
+            attempts++;
+            if (tryPatchApi() || attempts >= maxAttempts) {
+                clearInterval(interval);
+            }
+        }, 500);
     }
 
     function initSettings() {
@@ -209,6 +259,8 @@
         Lampa.Listener.follow('app', function(e) {
             if (e.type == 'ready') {
                 $("[data-action=anime], [data-action=indian]").remove();
+                // На случай если источники создались уже после 'ready'
+                patchApi();
             }
         });
     }
