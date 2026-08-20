@@ -186,115 +186,15 @@ restoreOriginalSubsAutostart();
         Lampa.Storage.set('lampac_unic_id', unic_id);
     }
 
-    // One small aggregate only, at most once per ten minutes. It contains no
-    // title, URL, IP address, account data, or individual request history.
-    var NEXUS_TELEMETRY_ENABLED = true;
-    var NEXUS_TELEMETRY_URL = 'https://beta.mitsu.tv/lumio-telemetry.php';
-    var NEXUS_TELEMETRY_INTERVAL = 15 * 60 * 1000;
-    var nexusTelemetry = (function () {
-        var counters = {};
-        var sources = {};
-        var lastSent = 0;
-        var flushTimer = 0;
-
-        function add(target, key, amount) {
-            target[key] = Math.min(50, (target[key] || 0) + (amount || 1));
-        }
-
-        function sourceKey(name) {
-            return String(name || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32);
-        }
-
-        function hasData() {
-            return Object.keys(counters).length || Object.keys(sources).length;
-        }
-
-        function schedule() {
-            if (flushTimer || !hasData()) return;
-            var delay = Math.max(1000, NEXUS_TELEMETRY_INTERVAL - (Date.now() - lastSent));
-            flushTimer = setTimeout(function () {
-                flushTimer = 0;
-                flush(false);
-            }, delay);
-        }
-
-        function flush(force) {
-            if (!NEXUS_TELEMETRY_ENABLED || !hasData()) return;
-            if (!force && Date.now() - lastSent < NEXUS_TELEMETRY_INTERVAL) {
-                schedule();
-                return;
-            }
-
-            var payload = JSON.stringify({
-                uid: unic_id,
-                version: NEXUS_VERSION,
-                counters: counters,
-                sources: sources
-            });
-
-            counters = {};
-            sources = {};
-            lastSent = Date.now();
-
-            try {
-                if (navigator.sendBeacon) {
-                    navigator.sendBeacon(NEXUS_TELEMETRY_URL, new Blob([payload], { type: 'text/plain;charset=UTF-8' }));
-                    return;
-                }
-            } catch (e) {}
-
-            try {
-                if (window.fetch) {
-                    window.fetch(NEXUS_TELEMETRY_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        credentials: 'omit',
-                        keepalive: true,
-                        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-                        body: payload
-                    }).catch(function () {});
-                }
-            } catch (e2) {}
-        }
-
-        function event(name) {
-            if (!NEXUS_TELEMETRY_ENABLED) return;
-            add(counters, name, 1);
-            flush(false);
-        }
-
-        function source(name, metric, value) {
-            if (!NEXUS_TELEMETRY_ENABLED) return;
-            name = sourceKey(name);
-            if (!name) return;
-            if (!sources[name]) sources[name] = {};
-            if (metric === 'latency_ms_sum') {
-                sources[name][metric] = Math.min(600000, (sources[name][metric] || 0) + Math.max(0, Math.round(value || 0)));
-            } else {
-                add(sources[name], metric, value || 1);
-            }
-            flush(false);
-        }
-
-        function latency(name, ms) {
-            if (!isFinite(ms) || ms < 0) return;
-            source(name, 'latency_count', 1);
-            source(name, 'latency_ms_sum', ms);
-        }
-
-        try {
-            var sessionKey = 'lumio_telemetry_session_' + NEXUS_VERSION;
-            var sessionDay = new Date().toISOString().slice(0, 10);
-            if (Lampa.Storage.get(sessionKey, '') !== sessionDay) {
-                Lampa.Storage.set(sessionKey, sessionDay);
-                event('session');
-            }
-        } catch (e3) {}
-
-        window.addEventListener('pagehide', function () { flush(true); });
-        return { event: event, source: source, latency: latency, flush: flush };
-    })();
-    window.nexusLumioTelemetry = nexusTelemetry;
+    // --- ТЕЛЕМЕТРИЯ ПОЛНОСТЬЮ ОТКЛЮЧЕНА (ЗАГЛУШКА) ---
+     var nexusTelemetry = {
+         event: function() {},
+         source: function() {},
+         latency: function() {},
+         flush: function() {}
+   };
+   window.nexusLumioTelemetry = nexusTelemetry;
+// --------------------------------------------------
 
     function accountUrl(url) {
     url = String(url);
