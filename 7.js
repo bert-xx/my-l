@@ -15,17 +15,16 @@
                 --lp-green: #22c55e;
                 --lp-yellow: #eab308;
                 --lp-bg-card: #0d1220;
-                --lp-bg-card-alt: #111728;
-                --lp-bg-focus: linear-gradient(120deg, rgba(20, 30, 60, 0.92), rgba(120, 60, 180, 0.55));
+                --lp-bg-focus: linear-gradient(120deg, rgba(20, 30, 60, 0.94), rgba(120, 60, 180, 0.60));
                 --lp-text-title: #ffffff;
-                --lp-text-sub: rgba(255, 255, 255, 0.62);
-                --lp-radius-lg: 12px;
-                --lp-radius-md: 8px;
-                --lp-radius-sm: 6px;
+                --lp-text-sub: rgba(255, 255, 255, 0.65);
+                --lp-radius-lg: 14px;
+                --lp-radius-md: 10px;
+                --lp-radius-sm: 7px;
             }
 
             /* ==========================================================================
-               1. КАРТОЧКИ ОНЛАЙНА (РАСШИРЕННЫЕ ПО ШИРИНЕ И ВЫСОТЕ)
+               1. КАРТОЧКИ ОНЛАЙНА (УВЕЛИЧЕННАЯ ВЫСОТА И ШИРИНА)
                ========================================================================== */
             .online-prestige.selector,
             .lumio-prestige.selector,
@@ -35,10 +34,10 @@
                 align-items: center !important;
                 justify-content: flex-start !important;
                 width: 100% !important;
-                min-height: 98px !important;
-                height: 104px !important;
-                margin-bottom: 8px !important;
-                padding: 10px 18px 10px 12px !important;
+                min-height: 120px !important;
+                height: 124px !important;
+                margin-bottom: 10px !important;
+                padding: 14px 22px 14px 14px !important;
                 background: var(--lp-bg-card) !important;
                 border-radius: var(--lp-radius-lg) !important;
                 border: 2px solid transparent !important;
@@ -54,21 +53,21 @@
             .files-item.selector.focus {
                 background: var(--lp-bg-focus) !important;
                 border-color: var(--lp-cyan) !important;
-                box-shadow: 0 0 0 1px var(--lp-cyan), 0 0 22px rgba(18, 214, 223, 0.35) !important;
+                box-shadow: 0 0 0 1px var(--lp-cyan), 0 0 26px rgba(18, 214, 223, 0.4) !important;
                 transform: scale(1.008) !important;
                 z-index: 5 !important;
             }
 
-            /* Превью-блок: расширенный формат 16:9 для кадров видео */
+            /* Превью-блок онлайна */
             .online-prestige__folder,
             .lumio-prestige__media,
             .files-item__img {
                 flex-shrink: 0 !important;
-                width: 140px !important;
-                min-width: 140px !important;
-                height: 80px !important;
-                min-height: 80px !important;
-                max-height: 80px !important;
+                width: 165px !important;
+                min-width: 165px !important;
+                height: 96px !important;
+                min-height: 96px !important;
+                max-height: 96px !important;
                 border-radius: var(--lp-radius-md) !important;
                 background-size: cover !important;
                 background-position: center center !important;
@@ -78,7 +77,7 @@
                 align-items: center !important;
                 justify-content: center !important;
                 overflow: hidden !important;
-                margin-right: 16px !important;
+                margin-right: 18px !important;
                 background-color: rgba(255, 255, 255, 0.04) !important;
             }
 
@@ -116,8 +115,8 @@
             /* Иконка микрофона */
             .online-prestige--voice .online-prestige__folder > svg,
             .online-prestige__folder > svg {
-                width: 32px !important;
-                height: 32px !important;
+                width: 38px !important;
+                height: 38px !important;
                 fill: #ffffff !important;
                 opacity: 0.92 !important;
             }
@@ -130,32 +129,33 @@
                 flex-direction: column !important;
                 justify-content: center !important;
                 min-width: 0 !important;
-                padding-right: 14px !important;
+                padding-right: 16px !important;
+                gap: 6px !important;
             }
 
             .online-prestige__title,
             .lumio-prestige__title,
             .files-item__title {
-                font-size: 1.35em !important;
+                font-size: 1.45em !important;
                 font-weight: 700 !important;
                 color: var(--lp-text-title) !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
-                margin-bottom: 5px !important;
+                line-height: 1.3 !important;
             }
 
             .online-prestige__info,
             .lumio-prestige__info,
             .files-item__info {
-                font-size: 0.95em !important;
+                font-size: 1em !important;
                 color: var(--lp-text-sub) !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
             }
 
-            /* Правый блок онлайна (время / качество) */
+            /* Правый блок онлайна */
             .files-item__right,
             .online-prestige__right {
                 flex-shrink: 0 !important;
@@ -163,15 +163,15 @@
                 flex-direction: column !important;
                 align-items: flex-end !important;
                 justify-content: center !important;
-                gap: 6px !important;
+                gap: 8px !important;
                 margin-left: auto !important;
             }
 
             .files-item__time,
             .online-prestige__time {
-                font-size: 0.95em !important;
+                font-size: 1em !important;
                 color: var(--lp-text-sub) !important;
-                font-weight: 500 !important;
+                font-weight: 600 !important;
             }
 
             .files-item__quality,
@@ -183,15 +183,15 @@
                 background: rgba(34, 197, 94, 0.20) !important;
                 color: #9dffc0 !important;
                 border-radius: var(--lp-radius-sm) !important;
-                padding: 0.22em 0.6em !important;
-                font-size: 0.8em !important;
-                font-weight: 600 !important;
+                padding: 0.3em 0.7em !important;
+                font-size: 0.85em !important;
+                font-weight: 700 !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.04em !important;
             }
 
             /* ==========================================================================
-               2. ИСПРАВЛЕННЫЙ МОДУЛЬ ТОРРЕНТОВ (2 СТРОКИ, ЧИПЫ, БЕЗ СМЕЩЕНИЙ)
+               2. КАРТОЧКИ ТОРРЕНТОВ (УВЕЛИЧЕННАЯ ВЫСОТА И ВНУТРЕННИЕ ОТСТУПЫ)
                ========================================================================== */
             .torrent-item.selector,
             .torrent-serial.selector {
@@ -199,10 +199,10 @@
                 flex-direction: row !important;
                 align-items: center !important;
                 width: 100% !important;
-                min-height: 98px !important;
+                min-height: 120px !important;
                 height: auto !important;
-                margin-bottom: 8px !important;
-                padding: 12px 18px !important;
+                margin-bottom: 10px !important;
+                padding: 16px 24px !important;
                 background: var(--lp-bg-card) !important;
                 border-radius: var(--lp-radius-lg) !important;
                 border: 2px solid transparent !important;
@@ -216,31 +216,31 @@
             .torrent-serial.selector.focus {
                 background: var(--lp-bg-focus) !important;
                 border-color: var(--lp-cyan) !important;
-                box-shadow: 0 0 0 1px var(--lp-cyan), 0 0 22px rgba(18, 214, 223, 0.35) !important;
+                box-shadow: 0 0 0 1px var(--lp-cyan), 0 0 26px rgba(18, 214, 223, 0.4) !important;
                 transform: scale(1.008) !important;
                 z-index: 5 !important;
             }
 
-            /* Тело торрента — строго 2 строки */
+            /* Тело торрента */
             .torrent-item__body {
                 flex: 1 1 auto !important;
                 min-width: 0 !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: center !important;
-                gap: 8px !important;
+                gap: 12px !important;
             }
 
-            /* Строка 1: Заголовок */
+            /* Строка 1: Название */
             .torrent-item__title {
-                font-size: 1.35em !important;
+                font-size: 1.45em !important;
                 font-weight: 700 !important;
                 color: #ffffff !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
                 display: block !important;
-                line-height: 1.25 !important;
+                line-height: 1.3 !important;
             }
 
             /* Строка 2: Метаданные (трекер, дата, сериал, сиды, размер) */
@@ -249,8 +249,8 @@
                 flex-direction: row !important;
                 align-items: center !important;
                 flex-wrap: wrap !important;
-                gap: 8px !important;
-                font-size: 0.9em !important;
+                gap: 10px !important;
+                font-size: 0.95em !important;
                 color: var(--lp-text-sub) !important;
             }
 
@@ -258,13 +258,14 @@
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                padding: 0.22em 0.65em !important;
+                padding: 0.3em 0.8em !important;
                 border-radius: var(--lp-radius-sm) !important;
-                background: rgba(155, 92, 255, 0.25) !important;
+                background: rgba(155, 92, 255, 0.28) !important;
                 color: #eadcff !important;
                 font-weight: 700 !important;
                 text-transform: uppercase !important;
-                font-size: 0.85em !important;
+                font-size: 0.88em !important;
+                letter-spacing: 0.04em !important;
             }
 
             .torrent-serial__series,
@@ -274,10 +275,10 @@
                 align-items: center !important;
                 background: rgba(255, 255, 255, 0.12) !important;
                 border-radius: var(--lp-radius-sm) !important;
-                padding: 0.2em 0.55em !important;
+                padding: 0.28em 0.7em !important;
                 font-weight: 600 !important;
                 color: #ffffff !important;
-                font-size: 0.85em !important;
+                font-size: 0.9em !important;
             }
 
             .torrent-item__seeds {
@@ -285,7 +286,7 @@
                 align-items: center !important;
                 background: rgba(34, 197, 94, 0.20) !important;
                 color: #9dffc0 !important;
-                padding: 0.22em 0.6em !important;
+                padding: 0.28em 0.75em !important;
                 border-radius: var(--lp-radius-sm) !important;
                 font-weight: 600 !important;
             }
@@ -295,7 +296,7 @@
                 align-items: center !important;
                 background: rgba(155, 92, 255, 0.25) !important;
                 color: #eadcff !important;
-                padding: 0.22em 0.6em !important;
+                padding: 0.28em 0.75em !important;
                 border-radius: var(--lp-radius-sm) !important;
                 font-weight: 600 !important;
             }
@@ -305,7 +306,7 @@
                 align-items: center !important;
                 background: rgba(18, 214, 223, 0.18) !important;
                 color: #bdfaff !important;
-                padding: 0.22em 0.65em !important;
+                padding: 0.28em 0.8em !important;
                 border-radius: var(--lp-radius-sm) !important;
                 font-weight: 600 !important;
                 margin-left: auto !important;
@@ -329,7 +330,7 @@
 
             .card.focus .card__view {
                 border-color: var(--lp-cyan) !important;
-                box-shadow: 0 0 0 1px var(--lp-cyan), 0 0 22px rgba(18, 214, 223, 0.35) !important;
+                box-shadow: 0 0 0 1px var(--lp-cyan), 0 0 24px rgba(18, 214, 223, 0.38) !important;
             }
 
             /* ==========================================================================
@@ -343,6 +344,8 @@
                 border-radius: var(--lp-radius-md) !important;
                 border: 2px solid transparent !important;
                 background: var(--lp-bg-card) !important;
+                padding: 12px 18px !important;
+                min-height: 52px !important;
                 transition: all 0.2s ease !important;
             }
 
@@ -353,7 +356,7 @@
             .selectbox-item.selector.focus {
                 background: var(--lp-bg-focus) !important;
                 border-color: var(--lp-cyan) !important;
-                box-shadow: 0 0 18px rgba(18, 214, 223, 0.35) !important;
+                box-shadow: 0 0 20px rgba(18, 214, 223, 0.38) !important;
             }
 
             /* ==========================================================================
@@ -373,7 +376,7 @@
                 bottom: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                height: 3px !important;
+                height: 4px !important;
                 background: rgba(255, 255, 255, 0.12) !important;
                 border-radius: 0 0 var(--lp-radius-lg) var(--lp-radius-lg) !important;
                 overflow: hidden !important;
