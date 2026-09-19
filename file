@@ -3,8 +3,10 @@ vless://6a32736d-4b7f-4c35-a1cf-4489d49f2cfb@fi.alpheratzz.org:443?allowInsecure
 vless://6a32736d-4b7f-4c35-a1cf-4489d49f2cfb@107.150.93.51:443?encryption=none&extra=%7B%22xmux%22%3A%7B%22maxConnections%22%3A1%2C%22maxReuseTimes%22%3A0%7D%7D&security=tls&sni=6a32736d.ferrin.uk&type=xhttp&fp=chrome#%F0%9F%87%AB%F0%9F%87%AE%20AetrisVPN
 ss://YWVzLTI1Ni1jZmI6cXdlclJFV1FAQA@211.178.105.134:6123#%F0%9F%87%B0%F0%9F%87%B7%20AetrisVPN
 vless://6a32736d-4b7f-4c35-a1cf-4489d49f2cfb@107.150.93.2:443?encryption=none&extra=%7B%22xmux%22%3A%7B%22maxConnections%22%3A1%2C%22maxReuseTimes%22%3A0%7D%7D&security=tls&sni=6a32736d.ferrin.uk&type=xhttp&fp=edge#%F0%9F%87%AB%F0%9F%87%AE%20AetrisVPN
-hysteria2://334f25ef-3fb7-44a0-8ab7-79527d613281@docs.fastline-labs.com:443?sni=docs.fastline-labs.com#0345 | 🌐 Unknown | 🏳️ CIDR-OLD | HYSTERIA2 | TG: @YoutubeUnBlockRu
-hysteria2://2a3b101d-d8f9-40e7-9373-b0ef487c0035@46.8.210.129:22443?sni=disk.api-yandex.net#3482 | 🇷🇺 Russia | 🏳️ SNI-Yandex | HYSTERIA2 | TG: @YoutubeUnBlockRu
+hysteria2://334f25ef-3fb7-44a0-8ab7-79527d613281@docs.fastline-labs.com:443?sni=docs.fastline-labs.com#0349 | 🌐 Unknown | 🏳️ CIDR-OLD | HYSTERIA2 | TG: @YoutubeUnBlockRu
+hysteria2://2a3b101d-d8f9-40e7-9373-b0ef487c0035@46.8.210.152:23443?sni=disk.api-yandex.net#0942 | 🇷🇺 Russia | 🏳️ SNI-Yandex | HYSTERIA2 | TG: @YoutubeUnBlockRu
+hysteria2://2a3b101d-d8f9-40e7-9373-b0ef487c0035@46.8.210.129:22443?sni=disk.api-yandex.net#3551 | 🇷🇺 Russia | 🏳️ SNI-Yandex | HYSTERIA2 | TG: @YoutubeUnBlockRu
+hysteria2://2a3b101d-d8f9-40e7-9373-b0ef487c0035@46.8.210.129:22443?sni=disk.api-yandex.net#4651 | 🇷🇺 Russia | 🏳️ SNI-Yandex | HYSTERIA2 | TG: @YoutubeUnBlockRu
 hysteria2://3f63c86c-ac4a-4900-85cf-4fedf93c2ca5@91.240.86.70:24443?sni=hy.quattro-tech.ru#%F0%9F%87%B1%F0%9F%87%BB%20Latvia%20%5B%2ACIDR%5D
 hysteria2://3f63c86c-ac4a-4900-85cf-4fedf93c2ca5@91.240.86.70:22443/?sni=hy.quattro-tech.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D
 hysteria2://3f63c86c-ac4a-4900-85cf-4fedf93c2ca5@91.240.86.70:22443?sni=itsallproxy.quattro-tech.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D
