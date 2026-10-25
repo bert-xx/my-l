@@ -3,7 +3,7 @@
     if (window.filter_content_loaded) return;
     window.filter_content_loaded = true;
 
-    var DEBUG = true; // true — писать в консоль, что и каким уровнем скрыто
+    var DEBUG = false; // true — писать в консоль, что и каким уровнем скрыто
 
     // ── Языковые фильтры (как было) ─────────────────────────────────────
     var filterConfig = [
