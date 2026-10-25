@@ -3,6 +3,8 @@
     if (window.filter_content_loaded) return;
     window.filter_content_loaded = true;
 
+    var DEBUG = true; // true — писать в консоль, что и каким уровнем скрыто
+
     // ── Языковые фильтры (как было) ─────────────────────────────────────
     var filterConfig = [
         { title: 'Японию (Аниме)', key: 'filter_japan',       codes: ['JP'],       langs: ['ja'] },
@@ -19,7 +21,7 @@
     // ── «Эротические» страны: правь список здесь ────────────────────────
     var ADULT_COUNTRIES = ['JP', 'KR', 'IT', 'FR', 'DE', 'HU', 'CZ', 'BR', 'TH', 'SE', 'DK', 'NL'];
 
-    // Язык → страна: запасной вариант, если в данных нет origin_country / production_countries
+    // Язык → страна: запасной вариант, если в данных нет стран
     var LANG_TO_COUNTRY = {
         ja: 'JP', ko: 'KR', it: 'IT', fr: 'FR', de: 'DE', hu: 'HU',
         cs: 'CZ', pt: 'BR', th: 'TH', sv: 'SE', da: 'DK', nl: 'NL'
@@ -29,12 +31,19 @@
 
     var ADULT_KEY = 'filter_erotic';
     var DRAMA_KEY = 'filter_drama_countries';
-    var URL_RE    = /tmdb|\/3\/|cub\./i;
+    var FLAG      = '__fc_patched';
+
+    window.filter_content_stats = { hidden: 0 };
+
+    function log() {
+        if (DEBUG && window.console) console.log.apply(console, ['[filter_content]'].concat([].slice.call(arguments)));
+    }
 
     function field(key) {
         try { return Lampa.Storage.field(key); } catch (e) { return true; }
     }
 
+    // ── Правила ─────────────────────────────────────────────────────────
     function genreIds(item) {
         if (Array.isArray(item.genre_ids)) return item.genre_ids;
         if (Array.isArray(item.genres)) return item.genres.map(function (g) { return g && g.id; });
@@ -78,7 +87,6 @@
         var lang      = item.original_language || '';
         var countries = actualCountries(item);
 
-        // 1. Фильтры по странам / языкам
         for (var i = 0; i < filterConfig.length; i++) {
             var f = filterConfig[i];
             if (field(f.key) === false) {
@@ -93,12 +101,10 @@
         var isAdult = item.adult == true;
         var inList  = inAdultCountries(item, countries);
 
-        // 2. Драма/Мелодрама из «эротических» стран.
-        //    Анимация из этих стран — только с adult.
+        // Драма/Мелодрама из «эротических» стран; анимация — только с adult
         if (field(DRAMA_KEY) === false && inList && hasDM && (!isAnim || isAdult)) return true;
 
-        // 3. Adult + Драма/Мелодрама и ключевые слова.
-        //    Анимация затрагивается только из «эротических» стран.
+        // Adult + Драма/Мелодрама и ключевые слова; анимация — только из «эротических» стран
         if (field(ADULT_KEY) === false) {
             var allowed = !isAnim || inList;
             if (allowed && isAdult && hasDM) return true;
@@ -109,23 +115,25 @@
     }
 
     function isMedia(it) {
-        return it && typeof it === 'object' && !Array.isArray(it) &&
-               it.id !== undefined && it.original_language !== undefined;
+        return it && typeof it === 'object' && !Array.isArray(it) && it.id !== undefined &&
+               (it.original_language !== undefined || it.genre_ids || it.origin_country || it.production_countries);
     }
 
-    // Фильтрует массивы карточек в любом месте ответа (на месте)
-    function filterTree(node, depth) {
-        if (!node || typeof node !== 'object' || depth > 3) return false;
+    // Фильтрует массивы карточек в любом месте данных (на месте)
+    function filterTree(node, depth, tag) {
+        if (!node || typeof node !== 'object' || depth > 4) return false;
         var changed = false;
 
         if (Array.isArray(node)) {
             for (var i = node.length - 1; i >= 0; i--) {
                 var it = node[i];
                 if (isMedia(it) && shouldHide(it)) {
+                    log('скрыто (' + tag + '):', it.title || it.name || it.original_title || it.id);
+                    window.filter_content_stats.hidden++;
                     node.splice(i, 1);
                     changed = true;
                 } else if (it && typeof it === 'object') {
-                    if (filterTree(it, depth + 1)) changed = true;
+                    if (filterTree(it, depth + 1, tag)) changed = true;
                 }
             }
             return changed;
@@ -133,59 +141,126 @@
 
         Object.keys(node).forEach(function (k) {
             var v = node[k];
-            if (v && typeof v === 'object' && filterTree(v, depth + 1)) changed = true;
+            if (v && typeof v === 'object' && filterTree(v, depth + 1, tag)) changed = true;
         });
         return changed;
     }
 
-    function matchUrl(u) {
-        return URL_RE.test(String(u || ''));
+    // ── Уровни 1–2: источники Lampa.Api.sources ─────────────────────────
+    function wrapCb(cb, tag) {
+        if (cb[FLAG + '_cb']) return cb;
+        var w = function (data) {
+            try { processData(data, tag); } catch (e) {}
+            return cb.apply(this, arguments);
+        };
+        w[FLAG + '_cb'] = true;
+        return w;
     }
 
-    // ── XHR ─────────────────────────────────────────────────────────────
+    // main/category у tmdb отдают массив функций-загрузчиков рядов — оборачиваем каждую
+    function wrapLoader(fn, tag) {
+        if (fn[FLAG + '_ld']) return fn;
+        var w = function () {
+            var args = [].slice.call(arguments);
+            if (typeof args[0] === 'function') args[0] = wrapCb(args[0], tag + ':ряд');
+            return fn.apply(this, args);
+        };
+        w[FLAG + '_ld'] = true;
+        return w;
+    }
+
+    function processData(data, tag) {
+        if (!data || typeof data !== 'object') return;
+        if (Array.isArray(data)) {
+            for (var i = 0; i < data.length; i++) {
+                if (typeof data[i] === 'function') data[i] = wrapLoader(data[i], tag);
+            }
+        }
+        filterTree(data, 0, tag);
+    }
+
+    function patchMethod(src, name, srcName) {
+        if (typeof src[name] !== 'function') return;
+        var orig = src[name];
+        src[name] = function () {
+            var args = [].slice.call(arguments);
+            for (var i = 1; i < args.length; i++) {
+                if (typeof args[i] === 'function') args[i] = wrapCb(args[i], srcName + '.' + name);
+            }
+            return orig.apply(this, args);
+        };
+    }
+
+    var METHODS = ['list', 'main', 'category', 'search', 'full'];
+
+    function tryPatchApi() {
+        if (!window.Lampa || !Lampa.Api || !Lampa.Api.sources) return false;
+        var sources = Lampa.Api.sources;
+        var hasCub = false, hasTmdb = false;
+
+        Object.keys(sources).forEach(function (name) {
+            var src = sources[name];
+            if (!src || typeof src !== 'object') return;
+            if (name === 'cub') hasCub = true;
+            if (name === 'tmdb') hasTmdb = true;
+            if (src[FLAG]) return;
+            METHODS.forEach(function (m) { patchMethod(src, m, name); });
+            try { src[FLAG] = true; } catch (e) {}
+            log('источник пропатчен:', name);
+        });
+
+        return hasCub && hasTmdb;
+    }
+
+    function patchApi() {
+        if (tryPatchApi()) return;
+        var attempts = 0;
+        var timer = setInterval(function () {
+            attempts++;
+            if (tryPatchApi() || attempts >= 60) clearInterval(timer);
+        }, 500);
+    }
+
+    // ── Уровень 3: сеть (любые адреса) ──────────────────────────────────
+    var MARK = '"original_language"';
+
     function processXhr(xhr) {
         try {
             var rt = xhr.responseType;
 
             if (rt === '' || rt === 'text') {
                 var txt = xhr.responseText;
-                if (!txt) return;
+                if (!txt || txt.length > 6000000 || txt.indexOf(MARK) === -1) return;
                 var c = txt.charAt(0);
                 if (c !== '{' && c !== '[') return;
                 var obj = JSON.parse(txt);
-                if (!filterTree(obj, 0)) return;
+                if (!filterTree(obj, 0, 'xhr')) return;
                 var out = JSON.stringify(obj);
                 Object.defineProperty(xhr, 'responseText', { configurable: true, value: out });
                 Object.defineProperty(xhr, 'response',     { configurable: true, value: out });
             } else if (rt === 'json') {
-                filterTree(xhr.response, 0);
+                filterTree(xhr.response, 0, 'xhr');
             }
         } catch (e) {}
     }
 
     var xhrOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url) {
+    XMLHttpRequest.prototype.open = function () {
         try {
-            if (matchUrl(url)) {
-                var xhr = this;
-                xhr.addEventListener('readystatechange', function () {
-                    if (xhr.readyState !== 4 || xhr.__fc_done) return;
-                    xhr.__fc_done = true;
-                    processXhr(xhr);
-                });
-            }
+            var xhr = this;
+            xhr.addEventListener('readystatechange', function () {
+                if (xhr.readyState !== 4 || xhr.__fc_done) return;
+                xhr.__fc_done = true;
+                processXhr(xhr);
+            });
         } catch (e) {}
         return xhrOpen.apply(this, arguments);
     };
 
-    // ── fetch ───────────────────────────────────────────────────────────
     var nativeFetch = window.fetch;
     if (nativeFetch) {
-        window.fetch = function (input) {
-            var u = typeof input === 'string' ? input : (input && input.url);
+        window.fetch = function () {
             var p = nativeFetch.apply(this, arguments);
-            if (!matchUrl(u)) return p;
-
             return p.then(function (res) {
                 try {
                     if (!res || !res.ok) return res;
@@ -194,8 +269,9 @@
 
                     return res.clone().text().then(function (t) {
                         try {
+                            if (!t || t.length > 6000000 || t.indexOf(MARK) === -1) return res;
                             var o = JSON.parse(t);
-                            if (filterTree(o, 0)) {
+                            if (filterTree(o, 0, 'fetch')) {
                                 return new Response(JSON.stringify(o), {
                                     status: res.status,
                                     statusText: res.statusText,
@@ -255,6 +331,14 @@
         window.filter_content_inited = true;
 
         initSettings();
+        patchApi();
+
+        Lampa.Listener.follow('app', function (e) {
+            if (e.type == 'ready') {
+                $('[data-action=anime], [data-action=indian]').remove();
+                patchApi();
+            }
+        });
         $('[data-action=anime], [data-action=indian]').remove();
     }
 
