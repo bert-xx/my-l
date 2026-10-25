@@ -57,14 +57,13 @@
         window.WebSocket = WS;
     }
 
-    // ── CSS: скрыть элементы интерфейса CUB ─────────────────────────────
+    // ── CSS: скрыть неинтерактивные элементы CUB ────────────────────────
     var css = [
         '.button--subscribe',
         '.full-start__reactions, .full-start-new__reactions, .full-reactions',
         '.full-start [class*="reactions"], .full-start-new [class*="reactions"]',
         '.head .open--notice, .head .notice--icon, .head .open--premium, .head .open--feed, .head .open--profile',
         '.menu__item[data-action="feed"], .menu__item[data-action="subscribes"], .menu__item[data-action="collections"]',
-        '.settings-folder[data-component="account"]',
         '.ad-bot, .ad-server'
     ].join(',\n') + ' { display: none !important; }';
 
@@ -73,18 +72,16 @@
     style.textContent = css;
     (document.head || document.documentElement).appendChild(style);
 
-    // ── Запасной вариант: скрыть кнопку «Подписаться» по тексту ─────────
+    // ── Кнопка «Подписаться»: удалить из DOM (фокус пульта не ломается) ─
     var RE_SUB = /^(подписаться|отписаться|подписка|subscribe|unsubscribe)$/i;
 
     function sweep() {
         var list = document.querySelectorAll('.full-start__button, .full-start-new__buttons > *, .full-start__buttons > *');
         for (var i = 0; i < list.length; i++) {
             var el = list[i];
-            if (el.__cub_off) continue;
             var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
             if (RE_SUB.test(t) || /subscribe/i.test(el.className || '')) {
-                el.style.display = 'none';
-                el.__cub_off = 1;
+                if (el.parentNode) el.parentNode.removeChild(el);
             }
         }
     }
@@ -102,4 +99,48 @@
         sweep();
     }
     startObserver();
+
+    // ── Раздел «Аккаунт» в настройках: удалить из DOM + пересобрать фокус ─
+    function removeAccountFolder(root) {
+        var nodes = (root || document).querySelectorAll('.settings-folder[data-component="account"]');
+        var removed = false;
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].parentNode) { nodes[i].parentNode.removeChild(nodes[i]); removed = true; }
+        }
+        return removed;
+    }
+
+    function refocus() {
+        try {
+            if (window.Lampa && Lampa.Controller && Lampa.Controller.enabled().name === 'settings') {
+                Lampa.Controller.toggle('settings');
+            }
+        } catch (e) {}
+    }
+
+    function hookSettings() {
+        if (!window.Lampa || !Lampa.Settings || !Lampa.Settings.listener) return;
+        Lampa.Settings.listener.follow('open', function (e) {
+            var body = e && e.body ? (e.body[0] || e.body) : null;
+            var changed = removeAccountFolder(body && body.querySelectorAll ? body : document);
+            if (!changed) changed = removeAccountFolder(document);
+            if (changed) {
+                setTimeout(refocus, 0);
+                setTimeout(refocus, 200);
+            }
+        });
+    }
+
+    if (window.appready) hookSettings();
+    else if (window.Lampa && Lampa.Listener) {
+        Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') hookSettings(); });
+    } else {
+        var tries = 0;
+        var iv = setInterval(function () {
+            if (window.Lampa && Lampa.Settings && Lampa.Settings.listener) {
+                clearInterval(iv);
+                hookSettings();
+            } else if (++tries > 100) clearInterval(iv);
+        }, 200);
+    }
 })();
