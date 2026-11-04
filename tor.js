@@ -13,10 +13,6 @@
         { id: 'jac_black', name: 'jac.black', url: 'jac.black' },
         { id: 'jacred_stream', name: 'jacred.stream', url: 'jacred.stream', key: 'pp' },
         { id: 'jr_maxvol_pro', name: 'jr.maxvol.pro', url: 'https://jr.maxvol.pro' },
-        { id: 'jacred_viewbox_dev', name: 'Viewbox', url: 'jacred.viewbox.dev', key: 'viewbox' },
-        { id: 'unknown', name: 'Unknown', url: '188.119.113.252:9117', key: '1' },
-        { id: 'trs_my_to', name: 'Trs.my.to', url: 'trs.my.to:9118' },
-        { id: 'jacred_my_to', name: 'Jacred.my.to', url: 'jacred.my.to' },
         { id: 'jacred', name: 'Jac.red', url: 'jac.red' },
         { id: 'JaCred_su', name: 'JacRed.su', url: 'jacred.su' },
         { id: 'jac_red_ru', name: 'jac-red.ru', url: 'jac-red.ru' }
